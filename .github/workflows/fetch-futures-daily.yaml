@@ -1,0 +1,28 @@
+name: Fetch Futures Daily
+
+on:
+  schedule:
+    - cron: "30 16 * * *" # UTC 时间 16:30，即 UTC+8 的凌晨 00:30
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  fetch-timeline:
+    runs-on: ubuntu-latest
+    env:
+      JQDATA_USERNAME: ${{ secrets.JQDATA_USERNAME }}
+      JQDATA_PASSWORD: ${{ secrets.JQDATA_PASSWORD }}
+      PGURL: ${{ secrets.PGURL }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run script
+        run: bun run scripts/fetch-futures-daily.ts

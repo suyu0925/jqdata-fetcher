@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import pg from 'pg'
-import { Bar, JqFutureContract, SecurityInfo } from './jqdata'
+import type { Bar, JqFutureContract, SecurityInfo } from './jqdata'
 
 if (!process.env.PGURL) {
   throw new Error('PGURL environment variable is required')
@@ -23,6 +23,10 @@ export const queryTodayFuturesInfo = async () => {
 }
 
 export const upsertFuturesInfo = async (futuresInfo: (SecurityInfo & { type: 'futures' })[]) => {
+  if (futuresInfo.length === 0) {
+    return
+  }
+
   await pool.query(`
     INSERT INTO futures_info (code, display_name, name, start_date, end_date)
     VALUES ${futuresInfo.map(info => `('${info.code}', '${info.display_name}', '${info.name}', '${info.start_date}', '${info.end_date}')`).join(', ')}
@@ -35,6 +39,10 @@ export const upsertFuturesInfo = async (futuresInfo: (SecurityInfo & { type: 'fu
 }
 
 export const upsertFuturesDailyBar = async (bars: Bar[]) => {
+  if (bars.length === 0) {
+    return
+  }
+
   await pool.query(`
     INSERT INTO futures_daily_bar 
       (

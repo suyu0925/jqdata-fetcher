@@ -1,6 +1,6 @@
-import { queryTodayFuturesInfo, upsertFuturesDailyBar, upsertFuturesInfo } from './db'
-import JqData, { JqFreqencyUnit } from './jqdata'
 import cliProgress from 'cli-progress'
+import { queryTodayFuturesInfo, upsertFuturesDailyBar, upsertFuturesInfo } from './db'
+import JqData, { type JqFreqencyUnit } from './jqdata'
 
 if (!process.env.JQDATA_USERNAME || !process.env.JQDATA_PASSWORD) {
   throw new Error('JQDATA_USERNAME and JQDATA_PASSWORD are required')
@@ -23,15 +23,9 @@ export async function fetchTodayFuturesBar() {
     const bars = await jq.getBars({
       code,
       unit: '1d' as JqFreqencyUnit,
-      start_date: new Date(),
-      end_date: new Date(),
+      count: 1,
     })
-    const hasError = bars.some(bar => isNaN(bar.close))
-    if (hasError) {
-      console.error(`${code} has error`, bars)
-    } else {
-      await upsertFuturesDailyBar(bars)
-    }
+    await upsertFuturesDailyBar(bars)
 
     bar.increment()
   }))

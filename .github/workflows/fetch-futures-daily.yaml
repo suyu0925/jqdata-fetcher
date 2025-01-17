@@ -2,7 +2,7 @@ name: Fetch Futures Daily
 
 on:
   schedule:
-    - cron: "30 16 * * *" # UTC 时间 16:30，即 UTC+8 的凌晨 00:30
+    - cron: "30 7 * * *" # UTC 时间 15:30，即 UTC+8 的凌晨 15:30
   workflow_dispatch: # 允许手动触发
 
 jobs:

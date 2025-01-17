@@ -60,6 +60,11 @@ const parseError = (text: string) => {
   if (errorMatch) {
     throw new Error(errorMatch[0])
   }
+
+  const tooManyRequestMatch = text.match(/[Tt]oo [Mm]any [Rr]equests/)
+  if (tooManyRequestMatch) {
+    throw new Error('too many requests')
+  }
 }
 
 const parseCSV = <T extends any>(csv: string) => {
@@ -69,7 +74,7 @@ const parseCSV = <T extends any>(csv: string) => {
   return lines.slice(1).map(line => {
     const values = line.split(',')
     return headers.reduce((obj, header, index) => {
-      obj[header] = values[index]
+      obj[header as keyof T] = values[index]
       return obj
     }, {} as {
       [K in keyof T]: string // csv中所有字段都是string
@@ -83,7 +88,7 @@ class JqData {
   private rateLimiter: RateLimiter
 
   constructor(private username: string, private password: string) {
-    this.rateLimiter = new RateLimiter(60, 500)
+    this.rateLimiter = new RateLimiter(1, 10)
   }
 
   private async fetchToken() {
@@ -104,7 +109,7 @@ class JqData {
     this.token = text
   }
 
-  private async _post(params: Record<string, any>) {
+  private async _post(params: Record<string, unknown>): Promise<string> {
     if (!this.token) {
       await this.fetchToken()
     }

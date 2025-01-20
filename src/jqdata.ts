@@ -5,6 +5,7 @@ import { RateLimiter } from './rateLimiter'
 export type JqCode = Tagged<string, 'JqCode'> // 聚宽证券代码
 
 export type JqDate = Tagged<string, 'JqDate'> // 格式为'yyyy-MM-dd'
+export type JqDatetime = Tagged<string, 'JqDatetime'> // 格式为'yyyy-MM-dd HH:mm:ss'
 
 export type JqFutureKind = Tagged<string, 'JqFutureKind'> // 期货品种，比如'AG'。
 
@@ -40,19 +41,23 @@ export type SecurityInfo = {
 
 export type Bar = {
   code: JqCode
-  date: JqDate
+  date: JqDatetime
   open: number
   high: number
   low: number
   close: number
   volume: number
   money: number
+  open_interest: number
+}
+
+export type DailyBar = Omit<Bar, 'date'> & {
+  date: JqDate
   paused: boolean
   high_limit: number
   low_limit: number
   avg: number
   pre_close: number
-  open_interest: number
 }
 
 const parseError = (text: string) => {
@@ -86,6 +91,7 @@ class JqData {
   private token: string | null = null
   private url = 'https://dataapi.joinquant.com/v2/apis'
   private rateLimiter: RateLimiter
+  private isFetchingToken = false
 
   constructor(private username: string, private password: string) {
     this.rateLimiter = new RateLimiter(1, 10)
@@ -162,7 +168,7 @@ class JqData {
       end_date: formatDate(endDate, 'yyyy-MM-dd'),
     })
 
-    return multilineText.split('\n') as JqDate[]
+    return (multilineText ? multilineText.split('\n') : []) as JqDate[]
   }
 
   /**
@@ -225,6 +231,41 @@ class JqData {
     return text as JqFutureContract
   }
 
+  async getDailyBars(params: {
+    code: JqCode
+    count?: number
+    start_date?: Date
+    end_date?: Date
+    include_now?: boolean // 是否包含当前bar ,默认为True
+    skip_paused?: boolean // 是否跳过停牌，默认为True
+    fq_ref_date?: JqDate // 复权基准日期，该参数为空时返回不复权数据
+  }): Promise<DailyBar[]> {
+    const csvText = await this._post({
+      method: 'get_price',
+      unit: '1d',
+      ...params,
+      ...(params.start_date && { start_date: formatDate(params.start_date, 'yyyy-MM-dd HH:mm:ss') }),
+      ...(params.end_date && { end_date: formatDate(params.end_date, 'yyyy-MM-dd HH:mm:ss') }),
+    })
+
+    return parseCSV<DailyBar>(csvText).map(bar => ({
+      code: params.code as JqCode,
+      date: bar.date as JqDate,
+      open: parseFloat(bar.open),
+      high: parseFloat(bar.high),
+      low: parseFloat(bar.low),
+      close: parseFloat(bar.close),
+      volume: parseFloat(bar.volume),
+      money: parseFloat(bar.money),
+      paused: !!parseInt(bar.paused),
+      high_limit: parseFloat(bar.high_limit),
+      low_limit: parseFloat(bar.low_limit),
+      avg: parseFloat(bar.avg),
+      pre_close: parseFloat(bar.pre_close),
+      open_interest: parseFloat(bar.open_interest),
+    } satisfies DailyBar))
+  }
+
   /**
    * 获取行情数据
    * 
@@ -239,28 +280,27 @@ class JqData {
     include_now?: boolean // 是否包含当前bar ,默认为True
     skip_paused?: boolean // 是否跳过停牌，默认为True
     fq_ref_date?: JqDate // 复权基准日期，该参数为空时返回不复权数据
-  }) {
+  }): Promise<Bar[]> {
+    if (params.unit === '1d') {
+      throw new Error('please use getDailyBars instead')
+    }
+
     const csvText = await this._post({
       method: 'get_price',
       ...params,
-      ...(params.start_date && { start_date: formatDate(params.start_date, 'yyyy-MM-dd') }),
-      ...(params.end_date && { end_date: formatDate(params.end_date, 'yyyy-MM-dd') }),
+      ...(params.start_date && { start_date: formatDate(params.start_date, 'yyyy-MM-dd HH:mm:ss') }),
+      ...(params.end_date && { end_date: formatDate(params.end_date, 'yyyy-MM-dd HH:mm:ss') }),
     })
 
     return parseCSV<Omit<Bar, 'code'>>(csvText).map(bar => ({
       code: params.code as JqCode,
-      date: bar.date as JqDate,
+      date: bar.date as JqDatetime,
       open: parseFloat(bar.open),
       high: parseFloat(bar.high),
       low: parseFloat(bar.low),
       close: parseFloat(bar.close),
       volume: parseFloat(bar.volume),
       money: parseFloat(bar.money),
-      paused: !!parseInt(bar.paused),
-      high_limit: parseFloat(bar.high_limit),
-      low_limit: parseFloat(bar.low_limit),
-      avg: parseFloat(bar.avg),
-      pre_close: parseFloat(bar.pre_close),
       open_interest: parseFloat(bar.open_interest),
     } satisfies Bar))
   }

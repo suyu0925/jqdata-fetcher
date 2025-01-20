@@ -1,6 +1,6 @@
-import { format } from 'date-fns'
+import { format, parse } from 'date-fns'
 import pg from 'pg'
-import type { Bar, JqFutureContract, SecurityInfo } from './jqdata'
+import type { Bar, DailyBar, JqFutureContract, SecurityInfo } from './jqdata'
 
 if (!process.env.PGURL) {
   throw new Error('PGURL environment variable is required')
@@ -38,7 +38,7 @@ export const upsertFuturesInfo = async (futuresInfo: (SecurityInfo & { type: 'fu
   `)
 }
 
-export const upsertFuturesDailyBar = async (bars: Bar[]) => {
+export const upsertFuturesDailyBar = async (bars: DailyBar[]) => {
   if (bars.length === 0) {
     return
   }
@@ -70,6 +70,36 @@ export const upsertFuturesDailyBar = async (bars: Bar[]) => {
       pre_close = EXCLUDED.pre_close,
       open_interest = EXCLUDED.open_interest
   `)
+}
+
+export const upsertFuturesMinutelyBar = async (bars: Bar[]) => {
+  if (bars.length === 0) {
+    return
+  }
+
+  await pool.query(`
+    INSERT INTO futures_minutely_bar 
+      (
+        code, time, open, high, low, close, volume, 
+        money, open_interest
+      )
+    VALUES 
+      ${bars.map((_, i) => `(
+        $${i * 9 + 1}, $${i * 9 + 2}::timestamp with time zone, $${i * 9 + 3}, $${i * 9 + 4}, $${i * 9 + 5}, $${i * 9 + 6}, $${i * 9 + 7}, 
+        $${i * 9 + 8}, $${i * 9 + 9})
+      `).join(', ')}
+    ON CONFLICT (code, time) DO UPDATE SET
+      open = EXCLUDED.open,
+      high = EXCLUDED.high,
+      low = EXCLUDED.low,
+      close = EXCLUDED.close,
+      volume = EXCLUDED.volume,
+      money = EXCLUDED.money,
+      open_interest = EXCLUDED.open_interest
+  `, bars.map(bar => [
+    bar.code, parse(bar.date, 'yyyy-MM-dd HH:mm:ss', new Date()), bar.open, bar.high, bar.low, bar.close, bar.volume,
+    bar.money, bar.open_interest,
+  ]).flat())
 }
 
 export const initDb = async () => {
@@ -106,11 +136,31 @@ export const initDb = async () => {
     CREATE INDEX IF NOT EXISTS idx_code ON futures_daily_bar (code);
     CREATE INDEX IF NOT EXISTS idx_date ON futures_daily_bar (date);
   `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS futures_minutely_bar (
+      code text NOT NULL,
+      time timestamp with time zone NOT NULL,
+      open numeric NOT NULL,
+      high numeric NOT NULL,
+      low numeric NOT NULL,
+      close numeric NOT NULL,
+      volume numeric NOT NULL,
+      money numeric NOT NULL,
+      open_interest numeric NOT NULL,
+      PRIMARY KEY (code, time)
+    );
+    CREATE INDEX IF NOT EXISTS idx_code ON futures_minutely_bar (code);
+    CREATE INDEX IF NOT EXISTS idx_time ON futures_minutely_bar (time);
+  `)
 }
 
 pool.on('connect', (client) => {
   const schema = new URL(process.env.PGURL!).searchParams.get('schema') || 'public'
-  client.query(`SET search_path TO ${schema}`)
+  client.query(`
+    SET search_path TO ${schema};
+    SET TIMEZONE TO 'Asia/Shanghai';
+  `)
 })
 
 await initDb()

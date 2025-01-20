@@ -1,8 +1,10 @@
 import { pool } from '../src/db'
-import { fetchTodayFutureList, fetchTodayFuturesBar } from '../src/tasks'
+import { fetchTodayDailyFuturesBar, fetchTodayFutureList, isTodayTradeDay } from '../src/tasks'
 
-await fetchTodayFutureList()
+if (await isTodayTradeDay()) {
+  await fetchTodayFutureList()
 
-await fetchTodayFuturesBar()
+  await fetchTodayDailyFuturesBar()
+}
 
 await pool.end()

@@ -8,12 +8,17 @@ if (!process.env.JQDATA_USERNAME || !process.env.JQDATA_PASSWORD) {
 
 const jq = new JqData(process.env.JQDATA_USERNAME, process.env.JQDATA_PASSWORD)
 
+export async function isTodayTradeDay() {
+  const tradeDays = await jq.getTradeDays(new Date(), new Date())
+  return tradeDays.length > 0
+}
+
 export async function fetchTodayFutureList() {
   const futureList = await jq.getFutureList(new Date())
   await upsertFuturesInfo(futureList)
 }
 
-export async function fetchTodayFuturesBar() {
+export async function fetchTodayDailyFuturesBar() {
   const futureContracts = (await queryTodayFuturesInfo()).map(info => info.code)
 
   const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)

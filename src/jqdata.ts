@@ -201,6 +201,15 @@ class JqData {
     return parseCSV<SecurityInfo>(csvText) as (SecurityInfo & { type: 'futures' })[]
   }
 
+  async getAllFutureList() {
+    const csvText = await this._post({
+      method: 'get_all_securities',
+      code: 'futures',
+    })
+
+    return parseCSV<SecurityInfo>(csvText) as (SecurityInfo & { type: 'futures' })[]
+  }
+
   /**
    * 获取期货可交易合约列表
    * 

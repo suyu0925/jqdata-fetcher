@@ -22,6 +22,15 @@ export const queryTodayFuturesInfo = async () => {
   return res.rows
 }
 
+export const queryFuturesInfoSince = async (date: Date) => {
+  const res = await pool.query<Omit<SecurityInfo, 'type' | 'code'> & { code: JqFutureContract }>(`
+    SELECT code, display_name, name, start_date, end_date 
+    FROM futures_info 
+    WHERE start_date >= '${format(date, 'yyyy-MM-dd')}'
+  `)
+  return res.rows
+}
+
 export const upsertFuturesInfo = async (futuresInfo: (SecurityInfo & { type: 'futures' })[]) => {
   if (futuresInfo.length === 0) {
     return
@@ -50,12 +59,10 @@ export const upsertFuturesDailyBar = async (bars: DailyBar[]) => {
         paused, high_limit, low_limit, avg, pre_close, open_interest
       )
     VALUES 
-      ${bars.map(bar => `
-        (
-          '${bar.code}', '${bar.date}', ${bar.open}, ${bar.high}, ${bar.low}, ${bar.close}, ${bar.volume}, ${bar.money},
-          ${bar.paused}, ${bar.high_limit}, ${bar.low_limit}, ${bar.avg}, ${bar.pre_close}, ${bar.open_interest}
-        )
-      `).join(', ')}
+      ${bars.map((_, i) => `(
+        $${i * 14 + 1}, $${i * 14 + 2}::date, $${i * 14 + 3}, $${i * 14 + 4}, $${i * 14 + 5}, $${i * 14 + 6}, $${i * 14 + 7}, $${i * 14 + 8}, 
+        $${i * 14 + 9}, $${i * 14 + 10}, $${i * 14 + 11}, $${i * 14 + 12}, $${i * 14 + 13}, $${i * 14 + 14}
+      )`).join(', ')}
     ON CONFLICT (code, date) DO UPDATE SET
       open = EXCLUDED.open,
       high = EXCLUDED.high,
@@ -69,7 +76,10 @@ export const upsertFuturesDailyBar = async (bars: DailyBar[]) => {
       avg = EXCLUDED.avg,
       pre_close = EXCLUDED.pre_close,
       open_interest = EXCLUDED.open_interest
-  `)
+  `, bars.map(bar => [
+    bar.code, bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.money, 
+    bar.paused, bar.high_limit, bar.low_limit, bar.avg, bar.pre_close, bar.open_interest,
+  ]).flat())
 }
 
 export const upsertFuturesMinutelyBar = async (bars: Bar[]) => {

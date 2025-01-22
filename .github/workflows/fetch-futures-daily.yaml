@@ -16,13 +16,13 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          bun-version: latest
+          python-version: '3.12'
 
       - name: Install dependencies
-        run: bun install
+        run: pip install -r ./requirements.txt
 
       - name: Run script
-        run: bun run scripts/fetch-futures-daily.ts
+        run: python daily.py

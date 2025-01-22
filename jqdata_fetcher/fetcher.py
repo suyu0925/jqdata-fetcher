@@ -5,7 +5,8 @@ import jqdatasdk as jq
 import pandas as pd
 from dotenv import load_dotenv
 
-from jqdata_fetcher.db.query import query_all_futures_info, query_today_futures_info
+from jqdata_fetcher.db.query import (query_all_futures_info,
+                                     query_today_futures_info)
 
 load_dotenv()
 
@@ -40,9 +41,11 @@ def fetch_today_futures_daily_bar():
     return df
 
 
-def fetch_full_single_future_daily_bar(code: str):
+def fetch_single_future_daily_bar(code: str, start_date, end_date):
     daily_bar = jq.get_price(
         code,
+        start_date=start_date,
+        end_date=end_date,
         fields=[
             'open', 'high', 'low', 'close', 'volume', 'money', 'open_interest',
             'paused', 'high_limit', 'low_limit', 'avg', 'pre_close',
@@ -55,15 +58,4 @@ def fetch_full_single_future_daily_bar(code: str):
     df = df.reset_index()
     df['code'] = code
     df['paused'] = df['paused'].astype(bool)
-    return df
-
-
-def fetch_all_futures_daily_bar():
-    all_futures = query_all_futures_info()
-    df = pd.DataFrame()
-    for _, row in all_futures.iterrows():
-        code = row['code']
-        daily_bar = fetch_full_single_future_daily_bar(code)
-        df = pd.concat([df, daily_bar])
-    df = df.reset_index(drop=True)
     return df

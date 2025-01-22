@@ -44,3 +44,9 @@ insert = sqlalchemy.dialects.postgresql.insert
 select = sqlalchemy.select
 
 and_ = sqlalchemy.and_
+
+text = sqlalchemy.text
+
+desc = sqlalchemy.desc
+
+asc = sqlalchemy.asc

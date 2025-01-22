@@ -41,3 +41,10 @@ class FuturesMinutelyBar(Base):
     volume = Column(Numeric)
     money = Column(Numeric)
     open_interest = Column(Numeric)
+
+
+class FuturesContinuousContract(Base):
+    __tablename__ = 'futures_continuous_contract'
+    date = Column(Date, primary_key=True)
+    continuous_code = Column(String, primary_key=True)
+    contract_code = Column(String)

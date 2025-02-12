@@ -91,7 +91,7 @@ def save_daily_continuous_contract():
     kinds = query_all_futures_kind()
     all_oi_df = query_latest_open_interest_daily()
     for kind in tqdm(kinds):
-        oi_df = all_oi_df[all_oi_df['code'].str.match(f'^{kind}\\d')]
+        oi_df = all_oi_df[all_oi_df['code'].str.match(f'^{kind}(?!7777|8888|9999)\\d')]
         if oi_df.empty:
             continue
 

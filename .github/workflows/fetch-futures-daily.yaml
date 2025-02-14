@@ -2,7 +2,7 @@ name: Fetch Futures Daily
 
 on:
   schedule:
-    - cron: "0 8 * * *" # 收盘后16: 00运行，即UTC 时间 08:00
+    - cron: "0 16 * * *" # 收盘后16: 00运行，试一下使用中国时区
   workflow_dispatch: # 允许手动触发
 
 jobs:
@@ -20,6 +20,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Install tzdata
+        run: sudo apt-get update && sudo apt-get install -y tzdata
+        env:
+          DEBIAN_FRONTEND: noninteractive
+
+      - name: Set timezone
+        run: sudo ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+        env:
+          TZ: Asia/Shanghai
+
+      - name: Verify timezone
+        run: date          
 
       - name: Install dependencies
         run: pip install -r ./requirements.txt

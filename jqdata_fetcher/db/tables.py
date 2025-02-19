@@ -6,6 +6,7 @@ from jqdata_fetcher.db.db import Base
 class FuturesInfo(Base):
     __tablename__ = 'futures_info'
     code = Column(String, primary_key=True)
+    product_code = Column(String)
     display_name = Column(String)
     name = Column(String)
     start_date = Column(Date)
@@ -16,6 +17,7 @@ class FuturesDailyBar(Base):
     __tablename__ = 'futures_daily_bar'
     code = Column(String, primary_key=True)
     date = Column(Date, primary_key=True)
+    product_code = Column(String)
     open = Column(Numeric)
     high = Column(Numeric)
     low = Column(Numeric)
@@ -34,6 +36,7 @@ class FuturesMinutelyBar(Base):
     __tablename__ = 'futures_minutely_bar'
     code = Column(String, primary_key=True)
     time = Column(Time, primary_key=True)
+    product_code = Column(String)
     open = Column(Numeric)
     high = Column(Numeric)
     low = Column(Numeric)
@@ -48,3 +51,4 @@ class FuturesContinuousContract(Base):
     date = Column(Date, primary_key=True)
     continuous_code = Column(String, primary_key=True)
     contract_code = Column(String)
+    product_code = Column(String)

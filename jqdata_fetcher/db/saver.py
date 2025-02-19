@@ -1,7 +1,10 @@
 import re
 
+import pandas as pd
+
 from jqdata_fetcher.db.db import Session, insert
-from jqdata_fetcher.db.tables import FuturesContinuousContract, FuturesDailyBar, FuturesInfo
+from jqdata_fetcher.db.tables import (FuturesContinuousContract,
+                                      FuturesDailyBar, FuturesInfo)
 
 
 def save_futures_info(futures_info):
@@ -9,6 +12,7 @@ def save_futures_info(futures_info):
         return
 
     df = futures_info[['code', 'display_name', 'name', 'start_date', 'end_date']]
+    df = df.assign(product_code=lambda df: df['code'].str.extract(r'^([A-Za-z]+)'))
 
     stmt = insert(FuturesInfo).values(df.to_dict('records'))
 
@@ -27,19 +31,20 @@ def save_futures_info(futures_info):
         session.commit()
 
 
-def save_daily_bar(daily_bar):
+def save_daily_bar(daily_bar: pd.DataFrame):
     if daily_bar.empty:
         return
 
     df = daily_bar[[
         'code', 'date', 'open', 'high', 'low', 'close', 'volume', 'money',  'open_interest',
         'paused', 'high_limit', 'low_limit', 'avg', 'pre_close',
-    ]]
+    ]].assign(product_code=lambda x: x['code'].str.extract(r'^([A-Za-z]+)'))
 
     stmt = insert(FuturesDailyBar).values(df.to_dict('records'))
     stmt = stmt.on_conflict_do_update(
         index_elements=['code', 'date'],
         set_={
+            'product_code': stmt.excluded.product_code,
             'open': stmt.excluded.open,
             'high': stmt.excluded.high,
             'low': stmt.excluded.low,
@@ -60,7 +65,7 @@ def save_daily_bar(daily_bar):
         session.commit()
 
 
-def save_dominant_contract(df):
+def save_dominant_contract(df: pd.DataFrame):
     if df.empty:
         return
 
@@ -73,6 +78,7 @@ def save_dominant_contract(df):
         .reset_index()
         .melt(id_vars=['date'], var_name='continuous_code', value_name='contract_code')
         .dropna()
+        .assign(product_code=kind)
         .to_dict('records')
     )
 
@@ -82,6 +88,7 @@ def save_dominant_contract(df):
         .reset_index()
         .melt(id_vars=['date'], var_name='continuous_code', value_name='contract_code')
         .dropna()
+        .assign(product_code=kind)
         .to_dict('records')
     )
 
@@ -90,6 +97,7 @@ def save_dominant_contract(df):
         index_elements=['date', 'continuous_code'],
         set_={
             'contract_code': stmt.excluded.contract_code,
+            'product_code': stmt.excluded.product_code,
         }
     )
 
@@ -98,7 +106,7 @@ def save_dominant_contract(df):
         session.commit()
 
 
-def save_consecutive_contract(df):
+def save_consecutive_contract(df: pd.DataFrame):
     if df.empty:
         return
 
@@ -114,6 +122,7 @@ def save_consecutive_contract(df):
             .reset_index()
             .melt(id_vars=['date'], var_name='continuous_code', value_name='contract_code')
             .dropna()
+            .assign(product_code=kind)
             .to_dict('records')
         )
 

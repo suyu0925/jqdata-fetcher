@@ -28,7 +28,7 @@ def query_all_futures_kind() -> list[str]:
                     SELECT DISTINCT
                         (regexp_matches(code, '^([A-Z]+)\d'))[1] AS prefix
                     FROM
-                        jqdata.futures_info
+                        futures_info
                     ORDER BY prefix ASC;
                 """)).fetchall()
                 ]

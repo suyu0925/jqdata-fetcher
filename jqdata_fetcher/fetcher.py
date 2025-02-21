@@ -30,14 +30,14 @@ def fetch_today_futures_info():
 def fetch_today_futures_daily_bar():
     future_list = query_today_futures_info()
     codes = future_list['code'].to_list()
-    daily_bar = jq.get_bars(codes, fields=[
+    daily_bar = jq.get_price(codes, fields=[
         'open', 'high', 'low', 'close', 'volume', 'money', 'open_interest',
         'paused', 'high_limit', 'low_limit', 'avg', 'pre_close',
-    ], count=1, unit='1d')
-    df = daily_bar.droplevel(1)
-    df.index.name = 'code'
-    df = df.reset_index()
+    ], start_date=datetime.date.today(), end_date=datetime.date.today(), frequency='daily')
+    df = daily_bar
     df['paused'] = df['paused'].astype(bool)
+    df['date'] = df['time'].dt.date
+    df = df.drop(columns=['time'])
     return df
 
 
